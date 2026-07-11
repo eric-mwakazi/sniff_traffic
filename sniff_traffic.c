@@ -1,5 +1,18 @@
 #include "define.h"
 
+static volatile sig_atomic_t keep_running = 1;
+
+void handle_sigint(int sig)
+{
+    (void)sig;
+    keep_running = 0;
+}
+
+/**
+ * @brief Print the source and destination ports of TCP and UDP packets.
+ *
+ * @param buffer Pointer to the packet buffer.
+ */
 void print_ports_info(const unsigned char *buffer) {
     struct ethhdr *eth = (struct ethhdr *)buffer;
     struct iphdr *ip;
@@ -31,6 +44,11 @@ void print_ports_info(const unsigned char *buffer) {
     }
 }
 
+/**
+ * @brief Print the source and destination IP addresses of IPv4 packets.
+ *
+ * @param packet Pointer to the packet buffer.
+ */
 void print_ip_info(const unsigned char *packet)
 {
     struct ethhdr *eth = (struct ethhdr *)packet;
@@ -49,6 +67,13 @@ void print_ip_info(const unsigned char *packet)
 
     printf("IPv4 %s -> %s\n", src_ip, dst_ip);
 }
+
+/**
+ * @brief Print the source and destination MAC addresses of Ethernet frames.
+ *
+ * @param mac Pointer to the Ethernet frame buffer.
+ * @param len Length of the Ethernet frame.
+ */
 void print_mac_address(const unsigned char *mac, ssize_t len) {
     struct ethhdr *eth = (struct ethhdr *)mac;
 
@@ -65,8 +90,14 @@ void print_mac_address(const unsigned char *mac, ssize_t len) {
     printf("EtherType: 0x%04x\n", ntohs(eth->h_proto));
 }
 
+
 int main(void)
 {
+    if (signal(SIGINT, handle_sigint) == SIG_ERR) {
+        perror("signal");
+        return 1;
+    }
+
     int sock = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
     if (sock < 0) {
         perror("socket");
@@ -76,9 +107,11 @@ int main(void)
     unsigned char buffer[65536];
 
     printf("Capturing packets... Press Ctrl+C to stop.\n");
-    while (1) {
+    while (keep_running) {
         ssize_t len = recvfrom(sock, buffer, sizeof(buffer), 0, NULL, NULL);
         if (len < 0) {
+            if (errno == EINTR)
+                continue;
             perror("recvfrom");
             close(sock);
             return 1;
@@ -90,6 +123,7 @@ int main(void)
         print_ports_info(buffer);
     }
 
+    printf("Stopping capture...\n");
     close(sock);
     return 0;
 }

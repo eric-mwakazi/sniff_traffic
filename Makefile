@@ -1,8 +1,8 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -pedantic
-SRC = main.c
+SRC = sniff_traffic.c
 OUT_DIR = outputs
-TARGET = $(OUT_DIR)/main
+TARGET = $(OUT_DIR)/sniff_traffic
 
 .PHONY: all run clean
 

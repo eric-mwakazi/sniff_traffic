@@ -3,6 +3,8 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include <signal.h>
+#include <errno.h>
 #include <sys/socket.h>
 #include <linux/if_packet.h>
 #include <net/ethernet.h>
